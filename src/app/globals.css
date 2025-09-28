@@ -1,14 +1,31 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@config '../../tailwind.config.ts';
 
 @custom-variant dark (&:is(.dark *));
+
+.dark {
+  /* dasar */
+  --bg: 17 24 39; /* slate-900 */
+  --fg: 241 245 249; /* slate-100 */
+  --muted: 148 163 184; /* slate-400 */
+  --border: 51 65 85; /* slate-700 */
+
+  /* primary lebih soft di dark agar kontras bagus */
+  --primary: 129 140 248; /* indigo-400 */
+  --primary-foreground: 17 24 39; /* slate-900 */
+
+  /* contoh gray scale override (opsional) kalau kamu pakai var warna hex lain */
+  /* --color-gray-100: #0B1220; dst. */
+}
 
 /* ==== THEME TOKENS (Tailwind v4) ==== */
 @theme {
   /* Font family */
-  --font-sans: "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji", ui-sans-serif, system-ui;
+  --font-sans:
+    'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji', ui-sans-serif, system-ui;
 
   /* Font weights */
   --font-weight-regular: 400;
@@ -83,6 +100,10 @@
   /* ==== Base ==== */
   --color-white: #ffffff;
   --color-black: #000000;
+
+  /* shadow navbar */
+
+  --shadow-navbar: 0 0 20px 0 rgba(203, 202, 202, 0.25);
 }
 
 @theme inline {
@@ -198,5 +219,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .custom-container {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1200px;
+    padding-left: 1.5rem; /* 24px */
+    padding-right: 1.5rem; /* 24px */
   }
 }
