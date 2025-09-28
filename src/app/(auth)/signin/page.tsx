@@ -16,7 +16,7 @@ export default function Page() {
         </p>
         <SignInForm />
         <p className='text-sm-regular md:text-md-regular mt-4 text-center'>
-          Don't have an account?
+          Dont have an account?
           <a href='/signup' className='text-sm-bold md:text-md-bold underline'>
             Daftar
           </a>
