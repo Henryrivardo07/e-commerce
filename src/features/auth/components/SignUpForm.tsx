@@ -1,15 +1,18 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { SignUpSchema, type SignUpFormValues } from '../schemas';
-import { registerUser } from '../api';
-import { useRouter } from 'next/navigation';
-import { getErrorMessage } from '@/lib/api';
-import Image from 'next/image';
-import type { RegisterPayload } from '@/entities/auth';
+
 import { Button } from '@/components/ui/button';
+
+import type { RegisterPayload } from '@/entities/auth';
+import { getErrorMessage } from '@/lib/api';
+
+import { registerUser } from '../api';
+import { SignUpSchema, type SignUpFormValues } from '../schemas';
 
 export default function SignUpForm() {
   const router = useRouter();
