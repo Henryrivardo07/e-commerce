@@ -6,10 +6,15 @@ import type {
   RegisterResponse,
   User,
 } from '@/entities/auth';
-import { api, http } from '@/lib/api';
+import { api, http, isAuthError } from '@/lib/api';
+import { ApiSuccess } from '@/types/https';
 
-export function login(payload: LoginPayload) {
-  return http.post<LoginResponse>('/api/auth/login', payload);
+export async function login(p: LoginPayload): Promise<LoginResponse> {
+  const { data } = await api.post<{ success: boolean; data: LoginResponse }>(
+    '/api/auth/login',
+    p
+  );
+  return data.data;
 }
 
 export async function registerUser(payload: RegisterPayload) {
@@ -31,6 +36,12 @@ export async function registerUser(payload: RegisterPayload) {
   return res.data;
 }
 
-export function getMe() {
-  return http.get<User>('/api/me');
+export async function getMe(): Promise<User | null> {
+  try {
+    const res = await http.get<ApiSuccess<User>>('/api/me');
+    return res.data; // <- ambil di dalam "data"
+  } catch (e) {
+    if (isAuthError(e)) return null;
+    throw e;
+  }
 }

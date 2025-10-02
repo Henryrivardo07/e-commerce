@@ -3,37 +3,104 @@
 import { Menu, Search, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import * as React from 'react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetClose,
+} from '@/components/ui/sheet';
 
 import Icon_Catalog from '@/assets/icon/icon_catalog.svg';
 import Icon_Store from '@/assets/icon/icon_store.svg';
 import Logo from '@/assets/icon/logo.svg';
+import { useMe } from '@/features/auth/hooks';
+import { useCartCount } from '@/features/cart/hooks';
+import { useMyShop } from '@/features/seller/hooks';
+import { getToken } from '@/lib/auth';
 
-import { Button } from './ui/button';
-import { SheetTrigger, SheetContent, SheetClose, Sheet } from './ui/sheet';
+/* ---------- utils ---------- */
+function useHydrated() {
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => setHydrated(true), []);
+  return hydrated;
+}
 
-/**
- * NOTE:
- * - Untuk sementara, data dummy di bawah (cartCount, user, isSeller).
- * - Nanti ganti jadi props/context (ambil dari /api/me dan /api/cart).
- */
+function Avatar({
+  name,
+  src,
+  size = 28,
+}: {
+  name?: string | null;
+  src?: string | null;
+  size?: number;
+}) {
+  if (src) {
+    return (
+      <Image
+        src={src}
+        alt={name ?? 'avatar'}
+        width={size}
+        height={size}
+        className='rounded-full object-cover'
+      />
+    );
+  }
+  const initials = (name ?? 'U')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join('');
+  return (
+    <div
+      className='grid place-items-center rounded-full'
+      style={{
+        width: size,
+        height: size,
+        background: 'rgb(var(--color-gray-200))',
+        color: 'rgb(var(--color-gray-700))',
+        fontSize: 12,
+        fontWeight: 600,
+      }}
+    >
+      {initials || 'U'}
+    </div>
+  );
+}
+
+type NavItem = { label: string; href: string };
+
 export default function Navbar() {
-  const cartCount = 6; // TODO: ganti dari state cart
-  const isSeller = false; // TODO: ganti dari profil user
-  const user = {
-    name: 'John Doe',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=80&h=80&fit=crop&crop=faces',
-  }; // TODO: null kalau belum login
-  type NavItem = { label: string; href: string };
+  const hydrated = useHydrated();
+  const tokenReady = hydrated && !!getToken();
 
+  const { data: me, isLoading: meLoading } = useMe();
+  const { data: shop } = useMyShop(tokenReady); // <- enabled pakai token
+
+  const hasToken =
+    typeof window !== 'undefined' && !!localStorage.getItem('token');
+  const { data: cartCount = 0 } = useCartCount(!!me || hasToken);
+
+  const user = me ?? null;
+
+  const storeHref = user
+    ? shop
+      ? '/seller/products'
+      : '/seller/activate'
+    : '/signin?next=/seller/activate';
+  const storeLabel = shop ? 'My Store' : 'Open Store';
+  const storeLogo = shop?.logo ?? null;
+
+  // Mobile menu data
   const navigationData: NavItem[] = [
     { label: 'Catalog', href: '/products' },
     { label: 'Cart', href: '/cart' },
-
-    ...(isSeller
+    ...(shop
       ? [{ label: 'My Store', href: '/seller/products' }]
       : [{ label: 'Open Store', href: '/seller/activate' }]),
-
     ...(user
       ? [
           { label: 'Orders', href: '/orders' },
@@ -43,23 +110,17 @@ export default function Navbar() {
   ];
 
   return (
-    <header
-      className='sticky top-0 z-40 h-16 bg-[rgb(var(--bg))] shadow-[var(--shadow-navbar)] backdrop-blur md:h-[84px]'
-      // tanpa border, karena desain pakai shadow
-    >
+    <header className='sticky top-0 z-40 h-16 bg-[rgb(var(--bg))] shadow-[var(--shadow-navbar)] backdrop-blur md:h-[84px]'>
       <div className='custom-container flex h-full w-full items-center sm:justify-center'>
-        {/* === Left: Logo === */}
+        {/* Left: Logo */}
         <div>
           <Link href='/' className='flex items-center gap-2'>
-            {/* placeholder logo, ganti dengan asset kamu */}
-            <Image src={Logo} alt='logo' width={42} height={42} />
-            <span className='md:display-xs-bold hidden pr-[54px] md:block'>
-              Shirt
-            </span>
+            <Image src={Logo} alt='logo' width={42} height={42} priority />
+            <span className='md:display-xs-bold hidden md:block'>Shirt</span>
           </Link>
         </div>
 
-        {/* Catalog + search */}
+        {/* Catalog + Search */}
         <div className='ml-[16px] flex items-center gap-3 md:mr-[46px] md:ml-[46px]'>
           <Link
             href='/products'
@@ -75,7 +136,7 @@ export default function Navbar() {
               Catalog
             </p>
           </Link>
-          {/* search */}
+
           <label className='flex h-11 items-center gap-2 rounded-[12px] border border-neutral-300 px-4 md:w-[491px]'>
             <Search size={20} className='opacity-60' />
             <input
@@ -88,7 +149,7 @@ export default function Navbar() {
           </label>
         </div>
 
-        {/* === Right: Cart + Store + User === */}
+        {/* Right: Cart + Store + User */}
         <div className='flex items-center'>
           {/* Cart */}
           <div>
@@ -99,43 +160,57 @@ export default function Navbar() {
               title='Cart'
             >
               <ShoppingCart width={24} />
-              {cartCount > 0 && (
+              {hydrated && tokenReady && (cartCount ?? 0) > 0 && (
                 <span
                   className='absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full text-[11px] font-semibold text-white'
                   style={{ background: '#EF476F' }}
                 >
-                  {cartCount > 99 ? '99+' : cartCount}
+                  {(cartCount as number) > 99 ? '99+' : cartCount}
                 </span>
               )}
             </Link>
           </div>
 
+          {/* Store + User (desktop) */}
           <div className='hidden items-center gap-3 sm:flex'>
-            {/* Open Store / My Store */}
+            {/* Store chip */}
             <Link
-              href={isSeller ? '/seller/products' : '/seller/activate'}
+              href={storeHref}
               className='hidden items-center gap-2 truncate rounded-full border border-neutral-300 px-3 py-2 text-sm sm:inline-flex'
+              title={storeLabel}
             >
-              <Image alt='icon_store' src={Icon_Store} width={20} height={20} />
-              <span className='text-sm-bold truncate'>
-                {isSeller ? 'My Store' : 'Open Store'}
-              </span>
+              {storeLogo ? (
+                <Image
+                  src={storeLogo}
+                  alt='store-logo'
+                  width={20}
+                  height={20}
+                  className='rounded-full object-cover'
+                />
+              ) : (
+                <Image
+                  alt='icon_store'
+                  src={Icon_Store}
+                  width={20}
+                  height={20}
+                />
+              )}
+              <span className='text-sm-bold truncate'>{storeLabel}</span>
             </Link>
 
-            {/* User chip (if logged in) */}
-            {user ? (
+            {/* User area */}
+            {!hydrated || meLoading ? (
+              <div className='hidden items-center gap-2 rounded-full border border-neutral-300 px-3 py-2 sm:flex'>
+                <div className='h-7 w-7 animate-pulse rounded-full bg-[rgb(var(--color-gray-200))]' />
+                <div className='h-3 w-16 animate-pulse rounded bg-[rgb(var(--color-gray-200))]' />
+              </div>
+            ) : user ? (
               <Link
                 href='/account'
                 className='hidden items-center gap-2 rounded-full border border-neutral-300 px-3 py-2 sm:inline-flex'
                 title={user.name}
               >
-                <Image
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  width={28}
-                  height={28}
-                  className='rounded-full object-cover'
-                />
+                <Avatar name={user.name} src={user.avatarUrl} />
                 <span
                   className='text-sm-bold truncate'
                   style={{ color: 'rgb(var(--fg))' }}
@@ -158,8 +233,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* hamburger */}
-        {/* Mobile-only hamburger */}
+        {/* Mobile hamburger */}
         <Sheet>
           <SheetTrigger asChild>
             <Menu className='cursor-pointer lg:hidden' />
@@ -167,14 +241,14 @@ export default function Navbar() {
           <SheetContent>
             <nav className='mt-16'>
               <ul className='flex flex-col gap-4'>
-                {navigationData.map((data) => (
-                  <li key={data.label}>
+                {navigationData.map((item) => (
+                  <li key={item.label}>
                     <SheetClose asChild>
                       <Link
-                        href={data.href}
+                        href={item.href}
                         className='hover:text-primary-200 py-4'
                       >
-                        {data.label}
+                        {item.label}
                       </Link>
                     </SheetClose>
                   </li>
@@ -184,7 +258,7 @@ export default function Navbar() {
 
             <Button asChild className='mt-3 w-full'>
               <SheetClose asChild>
-                <Link href='#contact'>Get Started</Link>
+                <Link href='/products'>Get Started</Link>
               </SheetClose>
             </Button>
           </SheetContent>
