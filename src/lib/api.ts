@@ -1,16 +1,34 @@
 // src/lib/api.ts
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
+
+import axios, { AxiosError, AxiosHeaders, AxiosRequestConfig } from 'axios';
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080",
-  headers: { "Content-Type": "application/json" },
+  baseURL: process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8080',
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // Inject token (kalau ada)
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // kalau headers instance AxiosHeaders -> pakai .set
+      if (
+        config.headers &&
+        typeof (config.headers as AxiosHeaders).set === 'function'
+      ) {
+        (config.headers as AxiosHeaders).set(
+          'Authorization',
+          `Bearer ${token}`
+        );
+      } else {
+        // kalau headers masih plain object -> tambahkan key Authorization
+        config.headers = {
+          ...(config.headers ?? {}),
+          Authorization: `Bearer ${token}`,
+        } as any;
+      }
+    }
   }
   return config;
 });
@@ -57,5 +75,9 @@ export function getErrorMessage(err: unknown): string {
     const ax = err as AxiosError<{ message?: string }>;
     return ax.response?.data?.message ?? err.message;
   }
-  return (err as { message?: string })?.message ?? "Unknown error";
+  return (err as { message?: string })?.message ?? 'Unknown error';
+}
+
+export function isAuthError(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 401;
 }
